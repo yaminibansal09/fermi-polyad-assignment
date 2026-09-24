@@ -1,0 +1,31 @@
+artifacts = ["/app/assign/"]
+
+schema_version = "2.0"
+
+[task]
+name = "insight/fermi-polyad-assignment"
+description = "Assign a gas phase vibrational line list from the quartic force field, or show that the intensities make it impossible."
+
+[metadata]
+difficulty_explanation = "What gets graded is which Fermi terms come out of the contact transformation. If you leave them in, VPT2 still fits the strong lines. A Martin cut at 1 cm^-1 does the same, and so does 0.1 cm^-1. The case in the file is a 3x3 whose separate pairs both sit under 0.1 cm^-1. The second order energy barely moves, but the 3x3 shifts an origin by more than 1 cm^-1 and gives intensity to a band that looks dark in either 2x2. Splitting that block into two 2x2s counts the middle state twice. There are about 40 cubics inside the window, and 30 seconds is not enough to try subsets. The numbers are made up. They are not in Martin 1995, not in Krasnoshchekov, Isayeva and Stepanov, J. Chem. Phys. 141 (2014) 234114, and not a standard Gaussian anharmonic example."
+solution_explanation = "Subtract the dx entries of each removed resonance from x, then put w times the occupation factor between the two basis states that differ by that step. Find the removed set from the bright fundamentals: keep a coupling when a dark band next to it already has intensity, and take the states that connection reaches. The bands that stay outside have to land on that same deperturbed x. If one species has more observed intensity than the squared dipole derivatives of its modes, refute it. Mixing does not cross species."
+verification_explanation = "polyad_check rebuilds H from the indexes in the answer and from the goal. Nothing in the tests is a stored removed list. A line passes only if one same-species eigenpair has residual norm <= 1e-8 and the intensity test in the prompt, and a different index list passes too when it happens to meet the same bounds. One extra cubic, the sort that moves a level by ~1e-4 cm^-1, fails the residual. A refuted answer passes only when that species is strictly over on the exact rational sums. The goals used for grading are not the ones under /app/goals/. Before a goal is frozen, the Martin sets at 1 and 0.1 cm^-1, and every subset that adds or drops at most two couplings, are compared with the generating set. They miss by >= 0.5 cm^-1 or by >= 0.05 in relative intensity. That comparison is not part of the run."
+category = "Science"
+subcategory = "Chemistry"
+tags = ["spectroscopy", "infrared", "physical-chemistry"]
+expert_time_estimate_hours = 12
+relevant_experience = "Gas phase infrared assignments, deperturbed VPT2, and Fermi polyads reduced by hand for line lists."
+
+[verifier]
+timeout_sec = 600.0
+environment_mode = "separate"
+
+[agent]
+timeout_sec = 28800.0
+
+[environment]
+build_timeout_sec = 600.0
+cpus = 1
+memory_mb = 2048
+storage_mb = 10240
+gpus = 0
