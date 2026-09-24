@@ -1,0 +1,21 @@
+Our line list work only counts when the effective Hamiltonian is written down with it, and the anharmonic jobs left a pile of vibrational goals they could not close. Some of those lists are not assignable.
+
+Write `/app/assign/assign.py`. It is run as `python3 /app/assign/assign.py GOAL.json ANSWER.json` and must write its answer to `ANSWER.json` as a regular file (not a symlink). `/app/goals/` holds goals from that pile, and `/app/tools/polyad_check.py GOAL.json ANSWER.json` is the checker used for grading.
+
+Every number in a goal is an exact rational as a JSON string, an integer like `"-7"` or a fraction like `"3/14"`. Floats are rejected. Indexes start at 0.
+
+A goal has `modes`, `species_mod`, `mode_species`, `omega`, `x`, `mu`, `basis`, `lines`, and `resonances`. `modes` is how many modes there are. `species_mod` is a positive integer, and `mode_species[i]` is the species of mode `i`. Occupation `v` has species `sum_i v_i * mode_species[i]`, modulo `species_mod`. `omega` is the harmonic frequencies, one rational per mode. `x[i][j]` for `i <= j` is the Mills `x_ij` in cm^-1 before any Fermi term is taken out, Coriolis included. Ignore `x[i][j]` when `i > j`. From the zero point of that same `x`, the excitation energy is
+
+$$E(v)=\sum_i \omega_i v_i+\sum_{i\le j}x_{ij}\left[(v_i+\frac{1}{2})(v_j+\frac{1}{2})-\frac{1}{4}\right].$$
+
+`basis` lists the occupation vectors, integers, of every state the list is supposed to cover. `lines` has the same length. A line is `{"nu": s, "intensity": s, "species": n}` and is one of those states after the mixing. `mu[i]` is three rationals, `d(mu)/dq` for mode `i` along x, y, z. The only bright basis state of mode `i` is one quantum in `i` and zero everywhere else, and it carries `mu[i]`. Anything else is dark. If `c_b` are the real coefficients of an eigenvector, the intensity is the squared length of `sum_b c_b * mu(b)`.
+
+Each resonance has `kind` (`"I"` or `"II"`), `modes`, `w`, and `dx`. Kind I has `modes: [i, k]` with `i` the mode that changes by two. Kind II has `modes: [i, j, k]`. `w` is already the fundamental-pair value, `phi/4` for kind I and `phi/sqrt(8)` for kind II. `dx` entries are `{"i": i, "j": j, "value": s}` with `i <= j`. For a resonance listed in the answer, subtract each of those values from the matching `x_ij` and also put the coupling in the matrix. A resonance left out of the answer stays in `x` and does not appear off the diagonal.
+
+Take the two basis occupations that differ by the step, and evaluate the square root on the one with the smaller `k`. Kind II steps `i` and `j` up by one and `k` down by one, and the off diagonal element is `w` times the square root of `(v_i+1)*(v_j+1)*v_k`. Kind I steps `i` up by two and `k` down by one, and the element is `w` times the square root of `(v_i+1)*(v_i+2)*v_k/2`. The matrix is symmetric. No element is written unless both occupations are in `basis`, but the `dx` subtraction still happens. If several resonances hit the same pair, add the elements. There are no Darling Dennison terms. Every resonance in the file keeps the species.
+
+A proved answer is `{"status": "proved", "removed": [...]}`, with `removed` a strictly increasing list of indexes into `resonances`. A refuted answer is `{"status": "refuted", "species": s}`. That says the observed intensities of lines of species `s` are larger than the sum, over modes of species `s`, of the squared length of `mu[i]`. The mixing stays inside one species, so pulling terms out of `x` cannot fix the sum. Do not add other keys.
+
+For a proved answer the checker rebuilds `H` and accepts a line only when one eigenpair of the same species has `||(H - nu I) v|| / ||v||` at most `10^{-8}` at 80 decimal places, and no second eigenpair also fits that line. `|I - I_obs| / I_obs` must be below `10^{-6}` when `I_obs` is positive. When `I_obs` is zero, `I` must be at most `10^{-6}`. For a refuted answer the checker adds those two sums as rationals and accepts only if the named species is strictly over. Grading runs the script on other goals from the same pile. Only `/app/assign/` is carried over. Python is 3.13, with numpy, scipy, sympy, and mpmath. Each goal gets 30 seconds, and the whole batch gets 240 seconds, checking included.
+
+You have 28800 seconds to complete this task. Do not cheat by using online solutions or hints specific to this task.
